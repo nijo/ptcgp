@@ -259,10 +259,12 @@ app.get('/sync', async (req, res) => {
   }
 });
 
-app.get('/test', (req, res) => {
+app.get('/', (req, res) => {
   res.send("Test endpoint is working!");
 });
 
 app.listen(3000, () => {
   console.log(`Server is running at http://localhost:3000`);
 });
+
+module.exports = app;
