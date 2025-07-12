@@ -3,8 +3,8 @@ const axios = require('axios');
 const cors = require('cors');
 const app = express();
 
-const SUPABASE_URL = process.env.SUPABASE_URL || "https://jaoqsxmqofdnzjatkgai.supabase.co/rest/v1/";
-const SUPABASE_KEY = process.env.SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imphb3FzeG1xb2ZkbnpqYXRrZ2FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyNDgxMTUsImV4cCI6MjA2NjgyNDExNX0.A8_s-DpkmXTNdxz73M_ofbmWV4quumKCk7eA2lMk49E";
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 const supabaseHeaders = {
   "apikey": SUPABASE_KEY,
@@ -159,24 +159,28 @@ async function fetchPokemonData(exp) {
   // Packs and Sets
   packsData.forEach(a => {
     packs.push(a.name);
-    const URI = "Packs%2F" + a.name.replace(/ /g, "_") + ".webp";
-    imgURLs.push({ getUrl: a.iconAssetUrl, postUrl: URI });
   });
 
   setsData.forEach(a => {
     sets.push(a.name);
-    const URI = "Sets%2F" + a.name.replace(/ /g, "_") + ".webp";
-    imgURLs.push({ getUrl: a.logoAssetUrl, postUrl: URI });
   });
 
   // --- Pokemon Cards ---
   pokemonCards.forEach(a => {
     gameData.push(buildPokemonCard(a, pokemonCards, rarityObj, gens));
+    imgURLs.push({
+      getUrl: a.illustrationUrl,
+      postUrl: `${a.expansionCollectionNumbers[0].expansionId.toUpperCase()}-${a.expansionCollectionNumbers[0].collectionNumber.toString().padStart(3, '0')}`
+    });
   });
 
   // --- Trainer Cards ---
   trainerCards.forEach(a => {
     gameData.push(buildTrainerCard(a, pokemonCards, rarityObj));
+    imgURLs.push({
+      getUrl: a.illustrationUrl,
+      postUrl: `${a.expansionCollectionNumbers[0].expansionId.toUpperCase()}-${a.expansionCollectionNumbers[0].collectionNumber.toString().padStart(3, '0')}`
+    });
   });
 
   return gameData;
@@ -201,7 +205,7 @@ async function fetchAndPost(imgURLs) {
 
   await Promise.all(
     data.map((item, index) =>
-      fetch(`https://firebasestorage.googleapis.com/v0/b/ptcgp-d1101.firebasestorage.app/o/${imgURLs[index].postUrl}`, {
+      fetch(`https://jaoqsxmqofdnzjatkgai.supabase.co/storage/v1/object/ptcgp/Images/${imgURLs[index].postUrl}`, {
         method: "POST",
         body: item
       })
@@ -214,8 +218,7 @@ async function fetchAndPost(imgURLs) {
 app.get('/full', async (req, res) => {
   try {
     const data = await fetchPokemonData();
-    // Uncomment below to upload images and patch to Firebase
-    // await fetchAndPost(imgURLs);
+    await fetchAndPost(imgURLs);
     await fetch(SUPABASE_URL + 'PTCGP', {
       method: "POST",
       headers: supabaseHeaders,
@@ -232,6 +235,7 @@ app.get('/delta/:exp', async (req, res) => {
   try {
     const exp = req.params.exp;
     const data = await fetchPokemonData(exp);
+    await fetchAndPost(imgURLs);
     await fetch(SUPABASE_URL + 'PTCGP', {
       method: "POST",
       headers: supabaseHeaders,
