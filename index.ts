@@ -1,0 +1,287 @@
+import { serve } from "https://deno.land/std/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': '*'
+};
+// --- Environment Variables ---
+const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
+// --- Helper Functions ---
+function removeHtmlTags(str) {
+  return str ? str.replace(/<[^>]*>/g, "") : "";
+}
+function formatEnergyTags(str) {
+  return str ? str.replace(/<span class="energy-text energy-text--type-(\w+)"><\/span>/g, (_, type)=>type.charAt(0).toUpperCase() + type.slice(1)) : "";
+}
+function getEvolvesInto(name, pokemonCards) {
+  const arr = pokemonCards.filter((b)=>b.pokemon?.previousEvolution?.name === name).map((b)=>b.name);
+  return [
+    ...new Set(arr)
+  ].sort().toString().replaceAll(',', ', ');
+}
+function countVariants(name, pokemonCards) {
+  const dm = pokemonCards.filter((b)=>b.name === name && (b.rarityName === 'Common' || b.rarityName === 'Uncommon' || b.rarityName === 'Rare' || b.rarityName === 'Double Rare')).length;
+  const st = pokemonCards.filter((b)=>b.name === name && (b.rarityName === 'Art Rare' || b.rarityName === 'Super Rare' || b.rarityName === 'Immersive Rare' || b.rarityName === 'Special Art Rare')).length;
+  const sh = pokemonCards.filter((b)=>b.name === name && (b.rarityName === 'Shiny' || b.rarityName === 'Shiny Super Rare')).length;
+  const cr = pokemonCards.filter((b)=>b.name === name && b.rarityName === 'Crown Rare').length;
+  return dm + ', ' + st + ', ' + sh + ', ' + cr;
+}
+function formatPack(a) {
+  if (a.isPromotion) {
+    let packName = a.promotionCardSource.replace(/Obtained from (a|the) /, "");
+    return packName.charAt(0).toUpperCase() + packName.slice(1).toLowerCase();
+  }
+  const arr = a.availablePacks?.length > 0 ? a.availablePacks.map((b)=>b.name) : [];
+  return [
+    ...new Set(arr)
+  ].sort().toString().replaceAll(',', ', ');
+}
+// --- Card Builders ---
+function buildPokemonCard(a, pokemonCards, rarityObj, gens) {
+  const abilityInfo = a.pokemon.pokemonAbilities?.length > 0 ? {
+    description: removeHtmlTags(formatEnergyTags(a.pokemon.pokemonAbilities[0].description)),
+    name: a.pokemon.pokemonAbilities[0].name
+  } : {
+    description: "",
+    name: ""
+  };
+  const abilityDescription = abilityInfo.description;
+  const abilityName = abilityInfo.name;
+  const attackInfo = a.pokemon.pokemonAttacks?.length > 0 ? a.pokemon.pokemonAttacks.map((ak)=>({
+      attackCost: Array.isArray(ak.attackCost) && ak.attackCost.length > 0 ? ak.attackCost.join(", ") : "NA",
+      attackDamage: ak.damage,
+      attackExtra: removeHtmlTags(formatEnergyTags(ak.description)),
+      attackName: ak.name,
+      attackSymbol: ak.damageSymbolLabel || ""
+    })) : "NA";
+  const attackOneCost = attackInfo[0]?.attackCost ? attackInfo[0]?.attackCost : "";
+  const attackOneDamage = attackInfo[0]?.attackDamage ? attackInfo[0]?.attackDamage : "";
+  const attackOneExtra = attackInfo[0]?.attackExtra ? attackInfo[0]?.attackExtra : "";
+  const attackOneName = attackInfo[0]?.attackName ? attackInfo[0]?.attackName : "";
+  const attackOneSymbol = attackInfo[0]?.attackSymbol ? attackInfo[0]?.attackSymbol : "";
+  const attackTwoCost = attackInfo[1]?.attackCost ? attackInfo[1]?.attackCost : "";
+  const attackTwoDamage = attackInfo[1]?.attackDamage ? attackInfo[1]?.attackDamage : "";
+  const attackTwoExtra = attackInfo[1]?.attackExtra ? attackInfo[1]?.attackExtra : "";
+  const attackTwoName = attackInfo[1]?.attackName ? attackInfo[1]?.attackName : "";
+  const attackTwoSymbol = attackInfo[1]?.attackSymbol ? attackInfo[1]?.attackSymbol : "";
+  const name = a.name;
+  const evolvesFrom = a.pokemon.previousEvolution?.name ?? "";
+  const evolvesInto = getEvolvesInto(name, pokemonCards);
+  const hp = a.pokemon.hp;
+  const info = removeHtmlTags(a.flavorText);
+  const pack = formatPack(a);
+  const set = a.expansion.name;
+  const retreatCost = a.pokemon.retreatAmount;
+  const rarity = rarityObj[a.rarityName];
+  const slNo = `${a.expansionCollectionNumbers[0].expansionId.toUpperCase()}-${a.expansionCollectionNumbers[0].collectionNumber.toString().padStart(3, "0")}`;
+  const stage = a.pokemon.evolutionLabel;
+  const type = a.pokemon.pokemonTypes[0];
+  const weakness = a.pokemon.weaknessType !== "UNSPECIFIED" ? a.pokemon.weaknessType : "";
+  const description = removeHtmlTags(formatEnergyTags(a.description));
+  const pokedexId = a.pokedexNumber;
+  const generation = gens.findIndex(([start, end])=>pokedexId >= start && pokedexId <= end) + 1;
+  const variants = countVariants(name, pokemonCards);
+  const packPoints = a.dustCost;
+  const illustrator = a.illustratorNames.toString();
+  const cardId = a.cardId;
+  const imgUrl = a.illustrationUrl;
+  return {
+    cardId,
+    abilityName,
+    abilityDescription,
+    attackOneCost,
+    attackOneDamage,
+    attackOneExtra,
+    attackOneName,
+    attackOneSymbol,
+    attackTwoCost,
+    attackTwoDamage,
+    attackTwoExtra,
+    attackTwoName,
+    attackTwoSymbol,
+    cardType: "Pokemon",
+    evolvesFrom,
+    evolvesInto,
+    name,
+    hp,
+    info,
+    pack,
+    set,
+    rarity,
+    retreatCost,
+    slNo,
+    stage,
+    type,
+    weakness,
+    description,
+    pokedexId,
+    variants,
+    packPoints,
+    generation,
+    illustrator,
+    imgUrl
+  };
+}
+function buildTrainerCard(a, pokemonCards, rarityObj) {
+  const name = a.name;
+  const evolvesInto = getEvolvesInto(name, pokemonCards);
+  const pack = formatPack(a);
+  const set = a.expansion.name;
+  const rarity = rarityObj[a.rarityName];
+  const slNo = `${a.expansionCollectionNumbers[0].expansionId.toUpperCase()}-${a.expansionCollectionNumbers[0].collectionNumber.toString().padStart(3, "0")}`;
+  const stage = a.trainer.trainerType;
+  const description = removeHtmlTags(formatEnergyTags(a.description));
+  const variants = countVariants(name, pokemonCards);
+  const packPoints = a.dustCost;
+  const illustrator = a.illustratorNames.toString();
+  const cardId = a.cardId;
+  const imgUrl = a.illustrationUrl;
+  return {
+    cardId,
+    abilityName: "",
+    abilityDescription: "",
+    attackOneCost: "",
+    attackOneDamage: "",
+    attackOneExtra: "",
+    attackOneName: "",
+    attackOneSymbol: "",
+    attackTwoCost: "",
+    attackTwoDamage: "",
+    attackTwoExtra: "",
+    attackTwoName: "",
+    attackTwoSymbol: "",
+    cardType: "Trainer",
+    evolvesFrom: "",
+    evolvesInto,
+    name,
+    hp: 0,
+    info: "",
+    pack,
+    set,
+    rarity,
+    retreatCost: 0,
+    slNo,
+    stage,
+    type: "",
+    weakness: "",
+    description,
+    pokedexId: -1,
+    variants,
+    packPoints,
+    generation: -1,
+    illustrator,
+    imgUrl
+  };
+}
+// --- Main Data Fetch & Transform ---
+async function fetchPokemonData(req) {
+  const text = await req.text();
+  const parsed = JSON.parse(text);
+  const gens = [
+    [
+      1,
+      151
+    ],
+    [
+      152,
+      251
+    ],
+    [
+      252,
+      386
+    ],
+    [
+      387,
+      493
+    ],
+    [
+      494,
+      649
+    ],
+    [
+      650,
+      721
+    ],
+    [
+      722,
+      809
+    ],
+    [
+      810,
+      905
+    ],
+    [
+      906,
+      1025
+    ]
+  ];
+  const rarityObj = {
+    "Common": "◇",
+    "Uncommon": "◇◇",
+    "Rare": "◇◇◇",
+    "Double Rare": "◇◇◇◇",
+    "Art Rare": "☆",
+    "Super Rare": "☆☆",
+    "Immersive Rare": "☆☆☆",
+    "Crown Rare": "♛",
+    "Special Art Rare": "☆☆",
+    "Shiny": "✸",
+    "Shiny Super Rare": "✸✸"
+  };
+  let pokemonCards = parsed.filter((a)=>a.pokemon);
+  let trainerCards = parsed.filter((a)=>a.trainer);
+  let gameData = [];
+  pokemonCards.forEach((a)=>{
+    gameData.push(buildPokemonCard(a, pokemonCards, rarityObj, gens));
+  });
+  trainerCards.forEach((a)=>{
+    gameData.push(buildTrainerCard(a, pokemonCards, rarityObj));
+  });
+  return gameData;
+}
+async function syncPokemonCount(text) {
+  const cardList = JSON.parse(text);
+  return cardList.map((card)=>({
+      cardId: card.cardId,
+      count: card.amount,
+      firstReceivedAt: card.firstReceivedAt,
+      lastReceivedAt: card.lastReceivedAt
+    }));
+}
+// --- API Endpoints ---
+serve(async (req)=>{
+  const url = new URL(req.url);
+  const pathname = url.pathname;
+  if (pathname.includes("full")) {
+    const text = await req.text();
+    const data = await syncPokemonCount(text);
+    const { dt, error } = await supabase.storage.from("json").upload("files/card_list.json", text, {
+      upsert: true
+    });
+    const resp = await supabase.from("card_list").upsert(data);
+    return new Response(JSON.stringify(resp), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
+      status: 200
+    });
+  } else if (pathname.includes("sync")) {
+    const text = await req.text();
+    const data = await syncPokemonCount(text);
+    const { dt, error } = await supabase.storage.from("json").upload("files/card_count.json", text, {
+      upsert: true
+    });
+    const resp = await supabase.from("card_count").upsert(data);
+    return new Response(JSON.stringify(resp), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
+      status: 200
+    });
+  } else {
+    return new Response("Test endpoint is working!");
+  }
+});
