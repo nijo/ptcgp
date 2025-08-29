@@ -1,4 +1,4 @@
-const keysToRemove = ["variants", "url", "uniqueSkinIds", "skinExchangePaths", "seriesId", "rulesDescription", "rarity", "promotionName", "isSerial", "isInAllExpansionPacks", "foundInPacks", "characterId", "expansionIds", "amountLang_JA", "amountLang_EN", "amountLang_CN", "amountLang_FR", "amountLang_IT", "amountLang_DE", "amountLang_ES", "amountLang_BR", "amountLang_KR", "assetUrl", "displayName", "isSpecial", "packId", "sku", "slug", "sortOrderPriority", "bgColorLeft", "bgColorRight", "cardCount", "packIds", "packSetAssetUrl", "cardType", "evolutionStage", "evolutionStageNumber", "iconUrl", "isEx", "isUltraBeast", "retreatEnergyList", "damageSymbol", "isNoDamage", "pokemonAttackId", "pokemonId", "pokemonAbilityId", "closeAt", "trainerId", "trainerTypeLabel", "id"];
+const keysToRemove = ["variants", "url", "uniqueSkinIds", "skinExchangePaths", "seriesId", "rulesDescription", "rarity", "promotionName", "isSerial", "isInAllExpansionPacks", "foundInPacks", "isPromo", "characterId", "logoAssetUrl", "iconAssetUrl", "displaySchedule", "expansionIds", "amountLang_JA", "amountLang_EN", "amountLang_CN", "amountLang_FR", "amountLang_IT", "amountLang_DE", "amountLang_ES", "amountLang_BR", "amountLang_KR", "assetUrl", "displayName", "isSpecial", "packId", "sku", "slug", "sortOrderPriority", "bgColorLeft", "bgColorRight", "cardCount", "packIds", "packSetAssetUrl", "cardType", "evolutionStage", "evolutionStageNumber", "iconUrl", "isEx", "isUltraBeast", "retreatEnergyList", "damageSymbol", "isNoDamage", "pokemonAttackId", "pokemonId", "pokemonAbilityId", "closeAt", "trainerId", "trainerTypeLabel", "id"];
 
 function removeKeys(obj) {
   if (Array.isArray(obj)) {
@@ -22,3 +22,8 @@ const response2 = await fetch("https://www.pokemon-zone.com/api/players/58110729
 const text2 = await response2.json();
 const data2 = text2.data.cards;
 const cleanedData2 = removeKeys(data2);
+
+
+let data3 = {}
+data3["expansions"] = text1.data.expansions;
+data3["packs"] = text1.data.packs
