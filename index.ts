@@ -175,8 +175,7 @@ function buildTrainerCard(a, pokemonCards, rarityObj) {
   };
 }
 // --- Main Data Fetch & Transform ---
-async function fetchPokemonData(req) {
-  const text = await req.text();
+async function fetchPokemonData(text) {
   const parsed = JSON.parse(text);
   const gens = [
     [
@@ -249,13 +248,46 @@ async function syncPokemonCount(text) {
       lastReceivedAt: card.lastReceivedAt
     }));
 }
+async function fetchSets(text) {
+  const sets = JSON.parse(text);
+  let gameData = [];
+  let expansions = sets.expansions.filter((a)=>!a.isPromo);
+  expansions.forEach((a)=>{
+    let packs = sets.packs.filter((b)=>b.packId.startsWith(a.packIds[0].substring(0, 5)));
+    let packOneName = packs[0]?.name;
+    let packOneImage = packs[0]?.iconAssetUrl;
+    let packTwoName = packs[1]?.name;
+    let packTwoImage = packs[1]?.iconAssetUrl;
+    let packThreeName = packs[2]?.name;
+    let packThreeImage = packs[2]?.iconAssetUrl;
+    let expansionId = a.expansionId;
+    let cardCount = a.cardCount;
+    let image = a.logoAssetUrl;
+    let name = a.name;
+    let realeased = a.displaySchedule.openAt;
+    gameData.push({
+      packOneName,
+      packOneImage,
+      packTwoName,
+      packTwoImage,
+      packThreeName,
+      packThreeImage,
+      expansionId,
+      cardCount,
+      image,
+      name,
+      realeased
+    });
+  });
+  return gameData;
+}
 // --- API Endpoints ---
 serve(async (req)=>{
   const url = new URL(req.url);
   const pathname = url.pathname;
   if (pathname.includes("full")) {
     const text = await req.text();
-    const data = await syncPokemonCount(text);
+    const data = await fetchPokemonData(text);
     const { dt, error } = await supabase.storage.from("json").upload("files/card_list.json", text, {
       upsert: true
     });
@@ -281,7 +313,26 @@ serve(async (req)=>{
       },
       status: 200
     });
+  } else if (pathname.includes("set")) {
+    const text = await req.text();
+    const data = await fetchSets(text);
+    const { dt, error } = await supabase.storage.from("json").upload("files/sets.json", text, {
+      upsert: true
+    });
+    const resp = await supabase.from("sets").upsert(data);
+    return new Response(JSON.stringify(resp), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
+      status: 200
+    });
   } else {
-    return new Response("Test endpoint is working!");
+    return new Response("Test endpoint is working!", {
+      headers: {
+        ...corsHeaders
+      },
+      status: 200
+    });
   }
 });
