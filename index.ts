@@ -71,10 +71,11 @@ function buildPokemonCard(a, pokemonCards, rarityObj, gens) {
   const hp = a.pokemon.hp;
   const info = removeHtmlTags(a.flavorText);
   const pack = formatPack(a);
-  const set = a.expansion.name;
+  const mirrorType = a.mirrorTypeLabel;
+  const setId = a.expansionCollectionNumbers.expansionId;
   const retreatCost = a.pokemon.retreatAmount;
   const rarity = rarityObj[a.rarityName];
-  const slNo = `${a.expansionCollectionNumbers[0].expansionId.toUpperCase()}-${a.expansionCollectionNumbers[0].collectionNumber.toString().padStart(3, "0")}`;
+  const slNo = `${a.expansionCollectionNumbers.expansionId.toUpperCase()}-${a.expansionCollectionNumbers.collectionNumber.toString().padStart(3, "0")}`;
   const stage = a.pokemon.evolutionLabel;
   const type = a.pokemon.pokemonTypes[0];
   const weakness = a.pokemon.weaknessType !== "UNSPECIFIED" ? a.pokemon.weaknessType : "";
@@ -107,7 +108,7 @@ function buildPokemonCard(a, pokemonCards, rarityObj, gens) {
     hp,
     info,
     pack,
-    set,
+    setId,
     rarity,
     retreatCost,
     slNo,
@@ -120,16 +121,17 @@ function buildPokemonCard(a, pokemonCards, rarityObj, gens) {
     packPoints,
     generation,
     illustrator,
-    imgUrl
+    imgUrl,
+    mirrorType
   };
 }
 function buildTrainerCard(a, pokemonCards, rarityObj) {
   const name = a.name;
   const evolvesInto = getEvolvesInto(name, pokemonCards);
   const pack = formatPack(a);
-  const set = a.expansion.name;
+  const setId = a.expansionCollectionNumbers.expansionId;
   const rarity = rarityObj[a.rarityName];
-  const slNo = `${a.expansionCollectionNumbers[0].expansionId.toUpperCase()}-${a.expansionCollectionNumbers[0].collectionNumber.toString().padStart(3, "0")}`;
+  const slNo = `${a.expansionCollectionNumbers.expansionId.toUpperCase()}-${a.expansionCollectionNumbers.collectionNumber.toString().padStart(3, "0")}`;
   const stage = a.trainer.trainerType;
   const description = removeHtmlTags(formatEnergyTags(a.description));
   const variants = countVariants(name, pokemonCards);
@@ -137,6 +139,7 @@ function buildTrainerCard(a, pokemonCards, rarityObj) {
   const illustrator = a.illustratorNames.toString();
   const cardId = a.cardId;
   const imgUrl = a.illustrationUrl;
+  const mirrorType = a.mirrorTypeLabel;
   return {
     cardId,
     abilityName: "",
@@ -158,7 +161,7 @@ function buildTrainerCard(a, pokemonCards, rarityObj) {
     hp: 0,
     info: "",
     pack,
-    set,
+    setId,
     rarity,
     retreatCost: 0,
     slNo,
@@ -171,7 +174,8 @@ function buildTrainerCard(a, pokemonCards, rarityObj) {
     packPoints,
     generation: -1,
     illustrator,
-    imgUrl
+    imgUrl,
+    mirrorType
   };
 }
 // --- Main Data Fetch & Transform ---
