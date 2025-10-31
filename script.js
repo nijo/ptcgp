@@ -36,7 +36,8 @@ const splitObjects = cleanedData1.flatMap(obj =>
 		availablePacks: obj.availablePacks,
 		expansion: obj.expansion,
 		pokedexNumber: obj.pokedexNumber,
-		mirrorTypeLabel: obj.mirrorTypeLabel
+		mirrorTypeLabel: obj.mirrorTypeLabel,
+		seriesId: obj.seriesId
 	}))
 );
 console.log(splitObjects)
