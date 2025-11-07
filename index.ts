@@ -8,6 +8,27 @@ export const corsHeaders = {
 // --- Environment Variables ---
 const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
 // --- Helper Functions ---
+let images = [];
+async function uploadImagesParallel(images) {
+  for (const img of images){
+    try {
+      const response = await fetch(img.url);
+      const blob = await response.blob();
+      const filePath = `${img.base}${img.id}.webp`; // unique filename
+      const { data, error } = await supabase.storage.from('ptcgp').upload(filePath, blob, {
+        contentType: blob.type,
+        upsert: true
+      });
+      if (error) {
+        console.error(`Error uploading ${img.url}:`, error);
+      } else {
+        console.log(`Uploaded ${img.url} to ${filePath}`);
+      }
+    } catch (err) {
+      console.error(`Failed to fetch ${img.url}:`, err);
+    }
+  }
+}
 function removeHtmlTags(str) {
   return str ? str.replace(/<[^>]*>/g, "") : "";
 }
@@ -75,6 +96,7 @@ function buildPokemonCard(a, pokemonCards, rarityObj, gens) {
   const setId = a.expansionCollectionNumbers.expansionId;
   const retreatCost = a.pokemon.retreatAmount;
   const rarity = rarityObj[a.rarityName];
+  const series = a.seriesId;
   const slNo = `${a.expansionCollectionNumbers.expansionId.toUpperCase()}-${a.expansionCollectionNumbers.collectionNumber.toString().padStart(3, "0")}`;
   const stage = a.pokemon.evolutionLabel;
   const type = a.pokemon.pokemonTypes[0];
@@ -122,7 +144,8 @@ function buildPokemonCard(a, pokemonCards, rarityObj, gens) {
     generation,
     illustrator,
     imgUrl,
-    mirrorType
+    mirrorType,
+    series
   };
 }
 function buildTrainerCard(a, pokemonCards, rarityObj) {
@@ -138,6 +161,7 @@ function buildTrainerCard(a, pokemonCards, rarityObj) {
   const packPoints = a.dustCost;
   const illustrator = a.illustratorNames.toString();
   const cardId = a.cardId;
+  const series = a.seriesId;
   const imgUrl = a.illustrationUrl;
   const mirrorType = a.mirrorTypeLabel;
   return {
@@ -175,7 +199,8 @@ function buildTrainerCard(a, pokemonCards, rarityObj) {
     generation: -1,
     illustrator,
     imgUrl,
-    mirrorType
+    mirrorType,
+    series
   };
 }
 // --- Main Data Fetch & Transform ---
@@ -260,14 +285,35 @@ async function fetchSets(text) {
     let packs = sets.packs.filter((b)=>b.packId.startsWith(a.packIds[0].substring(0, 5)));
     let packOneName = packs[0]?.name;
     let packOneImage = packs[0]?.iconAssetUrl;
+    images.push({
+      'id': packOneName,
+      'url': packOneImage,
+      'base': 'Packs/'
+    });
     let packTwoName = packs[1]?.name;
     let packTwoImage = packs[1]?.iconAssetUrl;
+    images.push({
+      'id': packTwoName,
+      'url': packTwoImage,
+      'base': 'Packs/'
+    });
     let packThreeName = packs[2]?.name;
     let packThreeImage = packs[2]?.iconAssetUrl;
+    images.push({
+      'id': packThreeName,
+      'url': packThreeImage,
+      'base': 'Packs/'
+    });
     let expansionId = a.expansionId;
     let cardCount = a.cardCount;
     let image = a.logoAssetUrl;
+    images.push({
+      'id': expansionId,
+      'url': image,
+      'base': 'Sets/'
+    });
     let name = a.name;
+    let series = a.expansionId.substring(0, 1).toUpperCase();
     let realeased = a.displaySchedule.openAt;
     gameData.push({
       packOneName,
@@ -280,6 +326,42 @@ async function fetchSets(text) {
       cardCount,
       image,
       name,
+      realeased,
+      series
+    });
+  });
+  expansions = sets.expansions.filter((a)=>a.isPromo);
+  expansions.forEach((a)=>{
+    let packs = sets.packs.filter((b)=>b.packId.startsWith(a.packIds[0].substring(0, 5)));
+    let packOneName = "Wonder pick";
+    let packOneImage = "";
+    let packTwoName = "Promo pack";
+    let packTwoImage = "";
+    let packThreeName = "Campaign, Mission, Shop";
+    let packThreeImage = "";
+    let expansionId = a.expansionId;
+    let cardCount = 0;
+    let image = a.logoAssetUrl;
+    images.push({
+      'id': expansionId,
+      'url': image,
+      'base': 'Sets/'
+    });
+    let name = a.name;
+    let series = a.expansionId.substring(6, 7).toUpperCase();
+    let realeased = a.displaySchedule.openAt;
+    gameData.push({
+      packOneName,
+      packOneImage,
+      packTwoName,
+      packTwoImage,
+      packThreeName,
+      packThreeImage,
+      expansionId,
+      cardCount,
+      image,
+      name,
+      series,
       realeased
     });
   });
@@ -296,6 +378,7 @@ serve(async (req)=>{
       upsert: true
     });
     const resp = await supabase.from("card_list").upsert(data);
+    uploadImagesParallel(images);
     return new Response(JSON.stringify(resp), {
       headers: {
         ...corsHeaders,
