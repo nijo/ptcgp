@@ -13,11 +13,17 @@ function removeKeys(obj) {
   return obj;
 }
 
+const myHeaders = new Headers();
+myHeaders.append("Content-Type", "application/json");
+myHeaders.append("Authorization", "Bearer **********************************************************");
+
+
+
 const response1 = await fetch("https://www.pokemon-zone.com/api/game/game-data/");
 const text1 = await response1.json();
 const data1 = text1.data.cards;
 const cleanedData1 = removeKeys(data1);
-const splitObjects = cleanedData1.flatMap(obj =>
+const output = cleanedData1.flatMap(obj =>
 	obj.expansionCollectionNumbers.map(item => ({
 		cardId: obj.cardId,
 		rarityName: obj.rarityName,
@@ -36,19 +42,27 @@ const splitObjects = cleanedData1.flatMap(obj =>
 		availablePacks: obj.availablePacks,
 		expansion: obj.expansion,
 		pokedexNumber: obj.pokedexNumber,
-		mirrorTypeLabel: obj.mirrorTypeLabel,
-		seriesId: obj.seriesId
+		mirrorTypeLabel: obj.mirrorTypeLabel
 	}))
 );
-console.log(splitObjects)
 
 const response2 = await fetch("https://www.pokemon-zone.com/api/players/5811072974828985/");
 const text2 = await response2.json();
 const data2 = text2.data.cards;
-const cleanedData2 = removeKeys(data2);
-console.log(cleanedData2)
+const output = removeKeys(data2);
 
 
 let data3 = {}
 data3["expansions"] = text1.data.expansions;
 data3["packs"] = text1.data.packs
+const output = data3;
+
+fetch("https://ghmaxnwhnxjjjjpnhpfi.supabase.co/functions/v1/ptcgp/sync", {
+  method: "POST",
+  headers: myHeaders,
+  body: JSON.stringify(output),
+  redirect: "follow"
+})
+  .then((response) => response.text())
+  .then((result) => console.log(result))
+  .catch((error) => console.error(error));
