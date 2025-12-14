@@ -15,7 +15,7 @@ function removeKeys(obj) {
 
 const myHeaders = new Headers();
 myHeaders.append("Content-Type", "application/json");
-myHeaders.append("Authorization", "Bearer **********************************************************");
+myHeaders.append("Authorization", "Bearer *************************************************************************");
 
 
 
@@ -23,7 +23,7 @@ const response1 = await fetch("https://www.pokemon-zone.com/api/game/game-data/"
 const text1 = await response1.json();
 const data1 = text1.data.cards;
 const cleanedData1 = removeKeys(data1);
-const output = cleanedData1.flatMap(obj =>
+const output1 = cleanedData1.flatMap(obj =>
 	obj.expansionCollectionNumbers.map(item => ({
 		cardId: obj.cardId,
 		rarityName: obj.rarityName,
@@ -46,21 +46,25 @@ const output = cleanedData1.flatMap(obj =>
 	}))
 );
 
-const response2 = await fetch("https://www.pokemon-zone.com/api/players/5811072974828985/");
-const text2 = await response2.json();
-const data2 = text2.data.cards;
-const output = removeKeys(data2);
-
-
 let data3 = {}
 data3["expansions"] = text1.data.expansions;
 data3["packs"] = text1.data.packs
-const output = data3;
+const output2 = data3;
 
-fetch("https://ghmaxnwhnxjjjjpnhpfi.supabase.co/functions/v1/ptcgp/sync", {
+fetch("https://ghmaxnwhnxjjjjpnhpfi.supabase.co/functions/v1/ptcgp/full", {
   method: "POST",
   headers: myHeaders,
-  body: JSON.stringify(output),
+  body: JSON.stringify(output1),
+  redirect: "follow"
+})
+  .then((response) => response.text())
+  .then((result) => console.log(result))
+  .catch((error) => console.error(error));
+
+fetch("https://ghmaxnwhnxjjjjpnhpfi.supabase.co/functions/v1/ptcgp/set", {
+  method: "POST",
+  headers: myHeaders,
+  body: JSON.stringify(output2),
   redirect: "follow"
 })
   .then((response) => response.text())
