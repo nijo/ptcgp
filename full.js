@@ -19,9 +19,9 @@ myHeaders.append("Authorization", "Bearer **************************************
 
 
 
-const response1 = await fetch("https://www.pokemon-zone.com/api/game/game-data/");
+const response1 = await fetch("https://www.pokemon-zone.com/api/game/card-data/");
 const text1 = await response1.json();
-const data1 = text1.data.cards;
+const data1 = text1.cards;
 const cleanedData1 = removeKeys(data1);
 const output1 = cleanedData1.flatMap(obj =>
 	obj.expansionCollectionNumbers.map(item => ({
